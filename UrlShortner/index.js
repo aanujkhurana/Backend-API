@@ -1,13 +1,15 @@
-
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const dns = require('dns');
 const app = express();
 
 // Basic Configuration
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 app.use(cors());
+
+// Body parsing middleware to handle POST requests
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
@@ -17,8 +19,14 @@ app.get('/', function(req, res) {
   res.sendFile(process.cwd() + '/views/index.html');
 });
 
+// Your first API endpoint
+app.get('/api/hello', function(req, res) {
+  res.json({ greeting: 'hello API' });
+});
+
 // Initialize an array to store URLs and their corresponding short URLs
 const urlDatabase = [];
+let currentId = 1;
 
 // Function to validate URL format
 function isValidUrl(url) {
@@ -50,7 +58,7 @@ app.post('/api/shorturl', (req, res) => {
     }
 
     // Generate short URL and save the mapping
-    const shortUrl = urlDatabase.length + 1;
+    const shortUrl = currentId++;
     urlDatabase.push({ original_url: url, short_url: shortUrl });
 
     res.json({ original_url: url, short_url: shortUrl });
