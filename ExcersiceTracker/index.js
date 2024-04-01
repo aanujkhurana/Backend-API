@@ -12,7 +12,11 @@ app.use(express.static('public'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+// Connect to MongoDB
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 
 // Create user schema and model
 const userSchema = new mongoose.Schema({
@@ -39,7 +43,7 @@ app.post('/api/users', async (req, res) => {
     const { username } = req.body;
     const user = new User({ username });
     await user.save();
-    res.json(user);
+    res.json({ username: user.username, _id: user._id });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -48,7 +52,7 @@ app.post('/api/users', async (req, res) => {
 // Get all users
 app.get('/api/users', async (req, res) => {
   try {
-    const users = await User.find({});
+    const users = await User.find({}, 'username _id');
     res.json(users);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -67,7 +71,14 @@ app.post('/api/users/:_id/exercises', async (req, res) => {
       date: date ? new Date(date) : new Date(),
     });
     await exercise.save();
-    res.json(exercise);
+    const user = await User.findById(userId);
+    res.json({
+      username: user.username,
+      description: exercise.description,
+      duration: exercise.duration,
+      date: exercise.date.toDateString(),
+      _id: exercise._id,
+    });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -88,7 +99,14 @@ app.get('/api/users/:_id/logs', async (req, res) => {
     let exercises = await Exercise.find(query).limit(limit);
     const count = exercises.length;
 
-    res.json({ userId, count, log: exercises });
+    const user = await User.findById(userId);
+    const logs = exercises.map((exercise) => ({
+      description: exercise.description,
+      duration: exercise.duration,
+      date: exercise.date.toDateString(),
+    }));
+
+    res.json({ username: user.username, _id: user._id, count, log: logs });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
