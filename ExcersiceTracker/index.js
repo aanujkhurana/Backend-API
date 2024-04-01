@@ -49,6 +49,16 @@ app.post('/api/users', async (req, res) => {
   }
 });
 
+// Get all users
+app.get('/api/users', async (req, res) => {
+  try {
+    const users = await User.find({}, 'username _id');
+    res.json(users);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // Add an exercise for a user
 app.post('/api/users/:_id/exercises', async (req, res) => {
   try {
@@ -75,6 +85,35 @@ app.post('/api/users/:_id/exercises', async (req, res) => {
       duration: exercise.duration,
       description: exercise.description,
     });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+
+// Get exercise logs for a user
+app.get('/api/users/:_id/logs', async (req, res) => {
+  try {
+    const userId = req.params._id;
+    const from = req.query.from ? new Date(req.query.from) : null;
+    const to = req.query.to ? new Date(req.query.to) : null;
+    const limit = req.query.limit ? parseInt(req.query.limit) : null;
+
+    let query = { userId };
+    if (from) query.date = { $gte: from };
+    if (to) query.date = { ...query.date, $lte: to };
+
+    let exercises = await Exercise.find(query).limit(limit);
+    const count = exercises.length;
+
+    const user = await User.findById(userId);
+    const logs = exercises.map((exercise) => ({
+      description: exercise.description,
+      duration: exercise.duration,
+      date: exercise.date.toDateString(),
+    }));
+
+    res.json({ username: user.username, _id: user._id, count, log: logs });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
