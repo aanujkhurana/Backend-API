@@ -18,13 +18,32 @@ app.get("/", function (req, res) {
   res.sendFile(__dirname + '/views/index.html');
 });
 
-
 // your first API endpoint... 
 app.get("/api/hello", function (req, res) {
   res.json({greeting: 'hello API'});
 });
 
+// API endpoint for timestamp microservice
+app.get("/api/:date?", function(req, res) {
+  const { date } = req.params;
+  
+  let inputDate;
+  
+  if (!date) {
+    inputDate = new Date();
+  } else {
+    inputDate = new Date(date);
+  }
 
+  if (inputDate.toString() === 'Invalid Date') {
+    return res.json({ error: 'Invalid Date' });
+  }
+
+  res.json({
+    unix: inputDate.getTime(),
+    utc: inputDate.toUTCString()
+  });
+});
 
 // Listen on port set in environment variable or default to 3000
 var listener = app.listen(process.env.PORT || 3000, function () {
