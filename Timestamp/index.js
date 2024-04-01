@@ -32,7 +32,8 @@ app.get("/api/:date?", function(req, res) {
   if (!date) {
     inputDate = new Date();
   } else {
-    inputDate = new Date(date);
+    // Check if the date parameter is a number (Unix timestamp)
+    inputDate = /^\d+$/.test(date) ? new Date(parseInt(date)) : new Date(date);
   }
 
   if (inputDate.toString() === 'Invalid Date') {
