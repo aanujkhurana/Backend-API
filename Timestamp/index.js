@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -5,7 +6,7 @@ const dns = require('dns');
 const app = express();
 
 // Basic Configuration
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -22,8 +23,13 @@ app.get('/api/hello', function(req, res) {
 });
 
 // Initialize an array to store URLs and their corresponding short URLs
-const urlDatabase = [];
-let currentId = 1;
+const urlDatabase = {};
+
+// Generate short URL using hashing algorithm
+function generateShortUrl(url) {
+  const hash = url.split('').reduce((acc, char) => (acc * 397) ^ char.charCodeAt(0), 0);
+  return Math.abs(hash).toString(36);
+}
 
 // API endpoint for URL shortening
 app.post('/api/shorturl', (req, res) => {
@@ -42,9 +48,14 @@ app.post('/api/shorturl', (req, res) => {
       return res.json({ error: 'invalid url' });
     }
 
+    // Check if the URL already exists in the database
+    if (urlDatabase[originalUrl]) {
+      return res.json({ original_url: originalUrl, short_url: urlDatabase[originalUrl] });
+    }
+
     // Generate short URL and save the mapping
-    const shortUrl = currentId++;
-    urlDatabase.push({ originalUrl, shortUrl });
+    const shortUrl = generateShortUrl(originalUrl);
+    urlDatabase[originalUrl] = shortUrl;
 
     res.json({ original_url: originalUrl, short_url: shortUrl });
   });
@@ -53,9 +64,9 @@ app.post('/api/shorturl', (req, res) => {
 // Redirect route for short URLs
 app.get('/api/shorturl/:short_url', (req, res) => {
   const shortUrl = req.params.short_url;
-  const foundUrl = urlDatabase.find((entry) => entry.shortUrl == shortUrl);
-  if (foundUrl) {
-    res.redirect(foundUrl.originalUrl);
+  const foundEntry = Object.entries(urlDatabase).find(([_, value]) => value === shortUrl);
+  if (foundEntry) {
+    res.redirect(foundEntry[0]);
   } else {
     res.json({ error: 'invalid short url' });
   }
