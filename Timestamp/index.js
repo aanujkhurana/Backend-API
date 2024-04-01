@@ -1,52 +1,66 @@
-// index.js
-// where your node app starts
+const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const dns = require('dns');
+const app = express();
 
-// init project
-var express = require('express');
-var app = express();
+// Basic Configuration
+const port = 3000;
 
-// enable CORS (https://en.wikipedia.org/wiki/Cross-origin_resource_sharing)
-// so that your API is remotely testable by FCC 
-var cors = require('cors');
-app.use(cors({optionsSuccessStatus: 200}));  // some legacy browsers choke on 204
+app.use(cors());
+app.use(bodyParser.urlencoded({ extended: true }));
 
-// http://expressjs.com/en/starter/static-files.html
-app.use(express.static('public'));
+app.use('/public', express.static(`${process.cwd()}/public`));
 
-// http://expressjs.com/en/starter/basic-routing.html
-app.get("/", function (req, res) {
-  res.sendFile(__dirname + '/views/index.html');
+app.get('/', function(req, res) {
+  res.sendFile(process.cwd() + '/views/index.html');
 });
 
-// your first API endpoint... 
-app.get("/api/hello", function (req, res) {
-  res.json({greeting: 'hello API'});
+// Your first API endpoint
+app.get('/api/hello', function(req, res) {
+  res.json({ greeting: 'hello API' });
 });
 
-// API endpoint for timestamp microservice
-app.get("/api/:date?", function(req, res) {
-  const { date } = req.params;
-  
-  let inputDate;
-  
-  if (!date) {
-    inputDate = new Date();
-  } else {
-    // Check if the date parameter is a number (Unix timestamp)
-    inputDate = /^\d+$/.test(date) ? new Date(parseInt(date)) : new Date(date);
+// Initialize an array to store URLs and their corresponding short URLs
+const urlDatabase = [];
+let currentId = 1;
+
+// API endpoint for URL shortening
+app.post('/api/shorturl', (req, res) => {
+  const originalUrl = req.body.url;
+
+  // Validate the URL format
+  const urlRegex = /^(http|https):\/\/[^ "]+$/;
+  if (!urlRegex.test(originalUrl)) {
+    return res.json({ error: 'invalid url' });
   }
 
-  if (inputDate.toString() === 'Invalid Date') {
-    return res.json({ error: 'Invalid Date' });
-  }
+  // Validate the URL domain
+  const urlParts = originalUrl.split('//');
+  dns.lookup(urlParts[1], (err) => {
+    if (err) {
+      return res.json({ error: 'invalid url' });
+    }
 
-  res.json({
-    unix: inputDate.getTime(),
-    utc: inputDate.toUTCString()
+    // Generate short URL and save the mapping
+    const shortUrl = currentId++;
+    urlDatabase.push({ originalUrl, shortUrl });
+
+    res.json({ original_url: originalUrl, short_url: shortUrl });
   });
 });
 
-// Listen on port set in environment variable or default to 3000
-var listener = app.listen(process.env.PORT || 3000, function () {
-  console.log('Your app is listening on port ' + listener.address().port);
+// Redirect route for short URLs
+app.get('/api/shorturl/:short_url', (req, res) => {
+  const shortUrl = req.params.short_url;
+  const foundUrl = urlDatabase.find((entry) => entry.shortUrl == shortUrl);
+  if (foundUrl) {
+    res.redirect(foundUrl.originalUrl);
+  } else {
+    res.json({ error: 'invalid short url' });
+  }
+});
+
+app.listen(port, function() {
+  console.log(`Listening on port ${port}`);
 });
