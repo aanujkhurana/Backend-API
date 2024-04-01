@@ -4,7 +4,7 @@
 	"description": "A REST API project, part of Free Code Camp's curriculum",
 	"main": "index.js",
 	"scripts": {
-		"dev":: "nodemon index.js",
+		"dev": "nodemon index.js",
 		"start": "node index.js"
 	},
 	"dependencies": {
