@@ -19,12 +19,6 @@ Express Micro Services
 1. Start the server using `npm start`.
 2. Access the application in your web browser at `http://localhost:3000`.
 
-## Endpoints
-
-- `/api/hello`: Returns a greeting message.
-- `/api/shorturl`: Shortens a provided URL.
-- `/api/shorturl/<short_url>`: Redirects to the original URL associated with the short URL.
-
 ## Technologies Used
 
 - Express.js
